@@ -1,10 +1,38 @@
+import os
 import streamlit as st
 import pandas as pd
 import requests
 
 # Base URL of the Flask backend
 # BACKEND_URL = "http://backend:7860"
-BACKEND_URL = "https://friendly-space-couscous-v675r7x7jw7pcp6rr-7860.app.github.dev"
+# BACKEND_URL = "https://friendly-space-couscous-v675r7x7jw7pcp6rr-7860.app.github.dev"
+BACKEND_URL = os.environ.get(
+    "BACKEND_URL",
+    "https://friendly-space-couscous-v675r7x7jw7pcp6rr-7860.app.github.dev"
+)
+
+BACKEND_API_KEY = os.environ.get("BACKEND_API_KEY")
+FRONTEND_ACCESS_KEY = os.environ.get("FRONTEND_ACCESS_KEY")
+
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if not st.session_state.authenticated:
+    st.title("Airbnb Rental Price Prediction")
+
+    access_key = st.text_input(
+        "Access Key",
+        type="password"
+    )
+
+    if st.button("Enter"):
+        if access_key == FRONTEND_ACCESS_KEY:
+            st.session_state.authenticated = True
+            st.rerun()
+        else:
+            st.error("Invalid access key.")
+
+    st.stop()
 
 # Set the title of the Streamlit app
 st.title("Airbnb Rental Price Prediction")
@@ -38,7 +66,8 @@ input_data = pd.DataFrame([{
 
 # Make prediction when the "Predict" button is clicked
 if st.button("Predict", type="primary"):
-    response = requests.post(f"{BACKEND_URL}/v1/rental", json=input_data.to_dict(orient='records')[0])  # Send data to Flask API
+    #response = requests.post(f"{BACKEND_URL}/v1/rental", json=input_data.to_dict(orient='records')[0])  # Send data to Flask API
+    response = requests.post(f"{BACKEND_URL}/v1/rental",json=input_data.to_dict(orient='records')[0],headers={"X-API-Key": BACKEND_API_KEY})
     if response.status_code == 200:
         prediction = response.json()['Predicted Price (in dollars)']
         st.success(f"Predicted Rental Price (in dollars): {prediction}")
@@ -54,7 +83,8 @@ uploaded_file = st.file_uploader("Upload CSV file for batch prediction", type=["
 # Make batch prediction when the "Predict Batch" button is clicked
 if uploaded_file is not None:
     if st.button("Predict Batch", type="primary"):
-        response = requests.post(f"{BACKEND_URL}/v1/rentalbatch", files={"file": uploaded_file})  # Send file to Flask API
+        #response = requests.post(f"{BACKEND_URL}/v1/rentalbatch", files={"file": uploaded_file})  # Send file to Flask API
+        response = requests.post(f"{BACKEND_URL}/v1/rentalbatch",files={"file": uploaded_file},headers={"X-API-Key": BACKEND_API_KEY})
         if response.status_code == 200:
             predictions = response.json()
             st.success("Batch predictions completed!")

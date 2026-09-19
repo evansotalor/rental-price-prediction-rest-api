@@ -1,4 +1,5 @@
 # Import necessary libraries
+import os
 import numpy as np
 import joblib  # For loading the serialized model
 import pandas as pd  # For data manipulation
@@ -7,8 +8,20 @@ from flask import Flask, request, jsonify  # For creating the Flask API
 # Initialize the Flask application
 rental_price_predictor_api = Flask("Airbnb Rental Price Predictor")
 
+# Backend API key used to protect prediction endpoints
+API_KEY = os.environ.get("BACKEND_API_KEY")
+
 # Load the trained machine learning model
 model = joblib.load("rental_price_prediction_model_v1_0.joblib")
+
+# Validate the API key sent with prediction requests
+def require_api_key():
+    provided_key = request.headers.get("X-API-Key")
+
+    if not API_KEY or provided_key != API_KEY:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    return None
 
 # Define a route for the home page (GET request)
 @rental_price_predictor_api.get('/')
@@ -22,11 +35,17 @@ def home():
 # Define an endpoint for single property prediction (POST request)
 @rental_price_predictor_api.post('/v1/rental')
 def predict_rental_price():
+
     """
     This function handles POST requests to the '/v1/rental' endpoint.
     It expects a JSON payload containing property details and returns
     the predicted rental price as a JSON response.
-    """
+    """    
+    # Check API key before processing the prediction
+    auth_error = require_api_key()
+    if auth_error:
+        return auth_error
+
     # Get the JSON data from the request body
     property_data = request.get_json()
 
@@ -69,6 +88,11 @@ def predict_rental_price_batch():
     It expects a CSV file containing property details for multiple properties
     and returns the predicted rental prices as a dictionary in the JSON response.
     """
+    # Check API key before processing the batch prediction
+    auth_error = require_api_key()
+    if auth_error:
+        return auth_error
+
     # Get the uploaded CSV file from the request
     file = request.files['file']
 
