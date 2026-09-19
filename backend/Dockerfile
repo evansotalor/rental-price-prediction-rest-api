@@ -6,4 +6,4 @@ COPY backend/ .
 
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
-CMD ["sh", "-c", "gunicorn -w 4 -b 0.0.0.0:${PORT:-7860} app:rental_price_predictor_api"]
+CMD ["sh", "-c", "gunicorn -w 1 --timeout 120 -b 0.0.0.0:${PORT:-7860} app:rental_price_predictor_api"]
